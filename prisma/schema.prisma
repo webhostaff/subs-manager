@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  planDays  Int      // 30 for monthly, 90 for 3 months (you can edit per group)
+  createdAt DateTime @default(now())
+  members   Membership[]
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  fullName    String
+  email       String?
+  contactType ContactType
+  contactValue String
+  createdAt   DateTime @default(now())
+  memberships Membership[]
+}
+
+model Membership {
+  id         String   @id @default(cuid())
+  groupId    String
+  customerId String
+  startDate  DateTime
+  endDate    DateTime
+  status     MembershipStatus @default(ACTIVE)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  group      Group    @relation(fields: [groupId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  reminders  Reminder[]
+
+  @@index([endDate])
+  @@index([groupId])
+  @@index([customerId])
+}
+
+model Reminder {
+  id            String   @id @default(cuid())
+  membershipId  String
+  remindAt      DateTime
+  type          ReminderType
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  membership    Membership @relation(fields: [membershipId], references: [id])
+
+  @@unique([membershipId, type, remindAt])
+  @@index([remindAt])
+}
+
+enum ContactType {
+  WHATSAPP
+  FACEBOOK
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+}
+
+enum ReminderType {
+  D2
+  D1
+}
